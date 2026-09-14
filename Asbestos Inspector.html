@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Asbestos Inspection House Sampling Simulator</title>
+<style>
+  :root{
+    --panel:#ffffff;
+    --ink:#1f2937;
+    --accent:#1f6feb;
+    --accent2:#0f766e;
+    --danger:#b91c1c;
+    --shadow:0 10px 28px rgba(0,0,0,.18);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    color:var(--ink);
+    background:linear-gradient(#9fd7ff 0 55%, #7fc36a 55% 100%);
+    overflow-x:hidden;
+  }
+  header{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:rgba(255,255,255,.95);
+    backdrop-filter:blur(6px);
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 14px;
+    box-shadow:0 2px 12px rgba(0,0,0,.12);
+  }
+  header h1{font-size:18px;margin:0}
+  .top-actions{display:flex;gap:8px;flex-wrap:wrap}
+  button{
+    border:0;
+    border-radius:10px;
+    padding:10px 14px;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 2px 5px rgba(0,0,0,.13);
+  }
+  button:hover{filter:brightness(.97)}
+  .primary{background:var(--accent);color:#fff}
+  .secondary{background:#e5e7eb;color:#111827}
+  .green{background:var(--accent2);color:#fff}
+  .danger{background:#fee2e2;color:var(--danger)}
+  #sceneWrap{
+    min-height:calc(100vh - 64px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    position:relative;
+  }
+  #scene{
+    width:min(1100px, 96vw);
+    aspect-ratio:16/9;
+    min-height:560px;
+    background:#dff1ff;
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .hud{
+    position:absolute;
+    left:16px;
+    bottom:16px;
+    z-index:20;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .badge{
+    position:absolute;
+    left:16px;
+    top:16px;
+    z-index:20;
+    background:rgba(255,255,255,.92);
+    padding:8px 12px;
+    border-radius:999px;
+    font-weight:700;
+    box-shadow:0 2px 8px rgba(0,0,0,.12);
+  }
+  .report-btn{
+    position:absolute;
+    right:16px;
+    top:16px;
+    z-index:22;
+    background:#7c3aed;
+    color:#fff;
+  }
+  .report-body{
+    max-height:68vh;
+    overflow:auto;
+    padding-right:6px;
+    line-height:1.45;
+  }
+  .report-body h3{margin:18px 0 8px;font-size:17px}
+  .report-body table{width:100%;border-collapse:collapse;margin:10px 0 16px;background:#fff}
+  .report-body th,.report-body td{border:1px solid #d1d5db;padding:8px;text-align:left;vertical-align:top}
+  .report-body th{background:#f3f4f6;width:34%}
+  .report-body ul{padding-left:22px}
+
+  .house-area,.room-area{position:absolute;inset:0}
+  .sky{position:absolute;inset:0 0 42% 0;background:linear-gradient(#91d2ff,#dff5ff)}
+  .ground{position:absolute;left:0;right:0;bottom:0;height:45%;background:linear-gradient(#78bd61,#4f9348)}
+  .house{
+    position:absolute;
+    left:16%;
+    width:68%;
+    top:16%;
+    height:68%;
+    background:#d9b58a;
+    border:8px solid #8a5a3c;
+    border-bottom-width:12px;
+  }
+  .house[data-material="wood"]{cursor:default}
+  .roof{
+    position:absolute;
+    left:11%;
+    width:78%;
+    top:7%;
+    height:18%;
+    background:#623f32;
+    clip-path:polygon(50% 0, 100% 100%, 0 100%);
+  }
+  .trim{
+    position:absolute;
+    left:0;right:0;top:49%;
+    height:5px;background:#8a5a3c;
+  }
+  .window{
+    position:absolute;
+    width:14%;
+    height:19%;
+    background:linear-gradient(135deg,#bfe9ff,#6faac9);
+    border:7px solid #f3f4f6;
+    outline:3px solid #5c4b3e;
+  }
+  .window:before,.window:after{
+    content:"";position:absolute;background:#f3f4f6;
+  }
+  .window:before{width:5px;height:100%;left:calc(50% - 2.5px);top:0}
+  .window:after{height:5px;width:100%;top:calc(50% - 2.5px);left:0}
+  .w1{left:17%;top:17%}.w2{right:17%;top:17%}
+  .w3{left:17%;bottom:14%}.w4{right:17%;bottom:14%}
+  .door{
+    position:absolute;
+    width:12%;
+    height:31%;
+    left:44%;
+    bottom:0;
+    background:#6d3f2b;
+    border:6px solid #4b2c20;
+  }
+  .door:after{
+    content:"";position:absolute;right:12%;top:48%;width:8px;height:8px;border-radius:50%;background:#fbbf24
+  }
+  .side-door{left:70%}
+  .path{
+    position:absolute;
+    left:44%;
+    bottom:0;
+    width:12%;
+    height:30%;
+    background:#b9b9b9;
+    clip-path:polygon(0 0,100% 0,100% 100%,0 100%);
+    transform:translateY(100%);
+  }
+  .foundation{
+    position:absolute;left:0;right:0;bottom:-8%;height:9%;background:#777
+  }
+
+  /* rooms */
+  .room{
+    position:absolute;inset:0;
+    background:#eadfce;
+  }
+  .wall{
+    position:absolute;left:0;right:0;top:0;height:70%;background:#e6dbc9;
+  }
+  .ceiling{
+    position:absolute;left:0;right:0;top:0;height:13%;
+    background:#f3efe7;border-bottom:4px solid #c9c1b6
+  }
+  .floor{
+    position:absolute;left:0;right:0;bottom:0;height:31%;
+    background:repeating-linear-gradient(90deg,#c99e6e 0 55px,#b88758 55px 58px);
+    border-top:6px solid #9d6b3f;
+  }
+  .tile-floor{
+    background:
+      linear-gradient(90deg,rgba(0,0,0,.08) 2px,transparent 2px) 0 0/64px 64px,
+      linear-gradient(rgba(0,0,0,.08) 2px,transparent 2px) 0 0/64px 64px,
+      #d7d7d7;
+  }
+  .carpet-floor{
+    background:linear-gradient(#8a6c5a,#795b4d);
+  }
+  .room-corner{
+    position:absolute;width:42px;height:42px;
+    border-left:6px solid rgba(90,90,90,.35);
+    border-top:6px solid rgba(90,90,90,.35);
+  }
+  .corner-tl{left:0;top:12%}
+  .corner-tr{right:0;top:12%;transform:scaleX(-1)}
+  .table{
+    position:absolute;left:58%;bottom:18%;width:20%;height:7%;background:#7a4e2f;
+  }
+  .table:before,.table:after{
+    content:"";position:absolute;top:100%;width:8px;height:55px;background:#5a3822
+  }
+  .table:before{left:8%}.table:after{right:8%}
+  .counter{
+    position:absolute;left:10%;bottom:24%;width:64%;height:18%;background:#a16b43;border:6px solid #71472e
+  }
+  .cabinet{position:absolute;left:13%;top:26%;width:24%;height:21%;background:#b8865b;border:5px solid #845b3d}
+  .sink{position:absolute;left:31%;bottom:41%;width:18%;height:7%;background:#cbd5e1;border:4px solid #8c9aa8}
+  .tub{position:absolute;left:10%;bottom:18%;width:38%;height:18%;background:#f8fafc;border:6px solid #94a3b8;border-radius:8px 8px 20px 20px}
+  .toilet{position:absolute;right:16%;bottom:18%;width:14%;height:22%;background:#fff;border:5px solid #cbd5e1;border-radius:10px}
+  .dresser{position:absolute;right:10%;bottom:24%;width:22%;height:30%;background:#8b5e3c;border:6px solid #68452d}
+
+  /* basement */
+  .basement{background:#82766c}
+  .brickwall{
+    position:absolute;inset:0 0 28% 0;
+    background:
+      linear-gradient(#0000 95%,rgba(60,40,30,.45) 95%) 0 0/70px 35px,
+      linear-gradient(90deg,#0000 95%,rgba(60,40,30,.45) 95%) 0 0/70px 35px,
+      #a05f43;
+  }
+  .basementFloor{position:absolute;left:0;right:0;bottom:0;height:30%;background:#8c8c8c;border-top:6px solid #666}
+  .boiler{position:absolute;left:38%;bottom:19%;width:24%;height:39%;background:#374151;border:7px solid #111827;border-radius:18px}
+  .boiler:before{content:"BOILER";position:absolute;left:0;right:0;top:18%;text-align:center;color:#fff;font-weight:800;letter-spacing:2px}
+  .pipe{
+    position:absolute;background:#d8d8c9;border:5px solid #a4a493;border-radius:16px;
+  }
+  .p1{left:18%;top:46%;width:31%;height:52px}
+  .p2{left:18%;top:27%;width:52px;height:24%}
+  .p3{left:57%;top:27%;width:52px;height:34%}
+  .p4{left:57%;top:27%;width:15%;height:52px}
+  .p5{left:28%;top:35%;width:21%;height:52px}
+  .p6{left:28%;top:35%;width:52px;height:26%}
+
+
+  .hardwood-floor{background:repeating-linear-gradient(90deg,#b9824d 0 86px,#8b5a2b 86px 90px)}
+  .ruler{position:absolute;z-index:12;pointer-events:none;color:#111827;font-size:11px;font-weight:700}
+  .ruler.horizontal{height:22px;border-top:3px solid #111827;background:repeating-linear-gradient(90deg,#111827 0 2px,transparent 2px 8.33%)}
+  .ruler.vertical{width:30px;border-left:3px solid #111827;background:repeating-linear-gradient(0deg,#111827 0 2px,transparent 2px 12.5%)}
+  .wall-ruler-h{left:8%;right:8%;top:17%}.wall-ruler-v{left:3%;top:19%;height:43%}.floor-ruler-h{left:8%;right:8%;bottom:6%}.floor-ruler-v{right:3%;bottom:5%;height:22%}
+  .ruler span{position:absolute;background:rgba(255,255,255,.82);padding:1px 3px;border-radius:4px}.horizontal .r0{left:0;top:3px}.horizontal .r1{left:20%;top:3px}.horizontal .r2{left:40%;top:3px}.horizontal .r3{left:60%;top:3px}.horizontal .r4{left:80%;top:3px}.horizontal .r5{right:0;top:3px}.vertical .r0{left:4px;top:0}.vertical .r1{left:4px;top:25%}.vertical .r2{left:4px;top:50%}.vertical .r3{left:4px;top:75%}.vertical .r4{left:4px;bottom:0}
+  .furnace{position:absolute;right:7%;bottom:19%;width:20%;height:37%;background:#64748b;border:7px solid #334155;border-radius:8px}.furnace:before{content:"GAS FURNACE";position:absolute;left:0;right:0;top:18%;text-align:center;color:#fff;font-weight:800;font-size:13px}.fp1{right:16%;top:16%;width:28px;height:31%}.fp2{right:16%;top:16%;width:20%;height:28px}
+  .end-actions{display:flex;justify-content:space-between;gap:12px;margin-top:16px}.feedback-list{display:flex;flex-direction:column;gap:14px;max-height:66vh;overflow:auto;padding-right:6px}.feedback-item{background:#fff7ed;border-left:5px solid #f97316;padding:12px 14px;border-radius:8px;white-space:pre-line;line-height:1.45}.feedback-good{background:#ecfdf5;border-left-color:#059669}
+
+  .feedback-shell{
+    display:flex;
+    flex-direction:column;
+    max-height:82vh;
+  }
+  .feedback-scroll{
+    max-height:58vh;
+    overflow-y:auto;
+    padding-right:8px;
+    margin-bottom:14px;
+  }
+  .feedback-controls{
+    position:sticky;
+    bottom:0;
+    background:#fff;
+    padding-top:12px;
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    border-top:1px solid #e5e7eb;
+  }
+  .feedback-controls button{
+    min-width:150px;
+  }
+
+  .sofa{
+    position:absolute;
+    left:14%;
+    bottom:21%;
+    width:34%;
+    height:18%;
+    background:linear-gradient(#6b7280,#4b5563);
+    border-radius:18px 18px 10px 10px;
+    border:5px solid #374151;
+    box-shadow:0 8px 12px rgba(0,0,0,.18);
+  }
+  .sofa:before{
+    content:"";
+    position:absolute;
+    left:4%;
+    right:4%;
+    bottom:92%;
+    height:70%;
+    background:linear-gradient(#7b8492,#5f6875);
+    border:5px solid #4b5563;
+    border-bottom:0;
+    border-radius:18px 18px 4px 4px;
+  }
+  .sofa:after{
+    content:"";
+    position:absolute;
+    left:48%;
+    top:5%;
+    width:4%;
+    height:90%;
+    background:rgba(255,255,255,.15);
+    border-radius:3px;
+  }
+  .sofa-arm-left,.sofa-arm-right{
+    position:absolute;
+    width:7%;
+    height:82%;
+    bottom:0;
+    background:#4b5563;
+    border-radius:10px;
+  }
+  .sofa-arm-left{left:-4%}
+  .sofa-arm-right{right:-4%}
+
+  .tv-stand{
+    position:absolute;
+    right:10%;
+    bottom:18%;
+    width:24%;
+    height:10%;
+    background:#5b3b28;
+    border:4px solid #3f281b;
+    box-shadow:0 5px 8px rgba(0,0,0,.18);
+  }
+  .tv{
+    position:absolute;
+    right:12%;
+    bottom:28%;
+    width:20%;
+    height:25%;
+    background:#111827;
+    border:7px solid #1f2937;
+    border-radius:8px;
+    box-shadow:0 8px 14px rgba(0,0,0,.25);
+  }
+  .tv:before{
+    content:"";
+    position:absolute;
+    inset:8%;
+    background:linear-gradient(135deg,#1e3a5f,#0f172a);
+    border-radius:3px;
+  }
+  .tv:after{
+    content:"";
+    position:absolute;
+    left:43%;
+    bottom:-18px;
+    width:14%;
+    height:18px;
+    background:#1f2937;
+  }
+
+  .bed{
+    position:absolute;
+    left:14%;
+    bottom:15%;
+    width:46%;
+    height:30%;
+    background:linear-gradient(#6f84bf,#5a6fa7);
+    border:7px solid #475569;
+    border-radius:12px 12px 8px 8px;
+    box-shadow:0 8px 14px rgba(0,0,0,.2);
+  }
+  .bed:before{
+    content:"";
+    position:absolute;
+    left:5%;
+    top:5%;
+    width:40%;
+    height:28%;
+    background:#f8fafc;
+    border:2px solid #d1d5db;
+    border-radius:10px;
+    box-shadow:42px 0 0 #f8fafc, 42px 0 0 2px #d1d5db;
+  }
+  .bed:after{
+    content:"";
+    position:absolute;
+    left:-5%;
+    top:-18%;
+    width:110%;
+    height:20%;
+    background:#68452d;
+    border:5px solid #4b3020;
+    border-radius:9px 9px 0 0;
+  }
+
+
+  .bath-sink{
+    position:absolute;right:34%;bottom:24%;width:18%;height:19%;
+    background:#f8fafc;border:5px solid #94a3b8;border-radius:8px 8px 14px 14px;
+    box-shadow:0 5px 8px rgba(0,0,0,.15);
+  }
+  .bath-sink:before{
+    content:"";position:absolute;left:18%;right:18%;top:12%;height:38%;
+    background:#dbeafe;border:3px solid #94a3b8;border-radius:50%;
+  }
+  .bath-sink:after{
+    content:"";position:absolute;left:45%;top:-18px;width:10%;height:20px;
+    background:#64748b;border-radius:5px 5px 0 0;
+  }
+  .toilet{
+    position:absolute;right:10%;bottom:18%;width:15%;height:20%;
+    background:#fff;border:5px solid #cbd5e1;border-radius:45% 45% 16px 16px;
+    box-shadow:0 5px 8px rgba(0,0,0,.14);
+  }
+  .toilet:before{
+    content:"";position:absolute;left:10%;right:10%;bottom:78%;height:70%;
+    background:#fff;border:5px solid #cbd5e1;border-radius:8px;
+  }
+
+
+  .bed{
+    position:absolute;left:14%;bottom:17%;width:48%;height:16%;
+    background:#e5e7eb;border:5px solid #475569;border-radius:8px 12px 5px 5px;
+    box-shadow:0 8px 12px rgba(0,0,0,.18);
+  }
+  .bed:before{
+    content:"";position:absolute;left:3%;top:-42%;width:24%;height:42%;
+    background:#f8fafc;border:3px solid #cbd5e1;border-radius:14px 14px 5px 5px;
+  }
+  .bed:after{
+    content:"";position:absolute;left:-6%;bottom:-5%;width:7%;height:175%;
+    background:#68452d;border:4px solid #4b3020;border-radius:5px 5px 0 0;
+  }
+  .bed-blanket{
+    position:absolute;right:0;top:0;width:68%;height:100%;
+    background:linear-gradient(#7186bd,#586da3);border-radius:0 8px 4px 0;
+  }
+  .bed-leg-left,.bed-leg-right{
+    position:absolute;bottom:-24px;width:8px;height:24px;background:#4b3020;
+  }
+  .bed-leg-left{left:8%}.bed-leg-right{right:8%}
+
+
+  /* Thicker insulated piping */
+  .pipe{border-width:7px}
+  .p1{height:52px}
+  .p2{width:52px}
+  .p3{width:52px}
+  .p4{height:52px}
+  .p5{height:52px}
+  .p6{width:52px}
+  .fp1{width:52px}
+  .fp2{height:52px}
+
+
+  .sketch-btn{
+    position:absolute;
+    right:16px;
+    top:62px;
+    z-index:22;
+    background:#0f766e;
+    color:#fff;
+  }
+  .floorplan-wrap{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-top:12px;
+  }
+  .floorplan-level{
+    border:2px solid #374151;
+    border-radius:10px;
+    padding:10px;
+    background:#f8fafc;
+  }
+  .floorplan-level h3{
+    margin:0 0 8px;
+    font-size:16px;
+  }
+  .floorplan-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+  }
+  .plan-room{
+    min-height:90px;
+    border:2px solid #64748b;
+    background:#fff;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:6px;
+    font-weight:700;
+  }
+  .plan-room.wide{grid-column:1 / -1}
+  .plan-basement{
+    margin-top:10px;
+    border:2px dashed #64748b;
+    padding:10px;
+    border-radius:6px;
+    text-align:center;
+    background:#eef2f7;
+    font-weight:700;
+  }
+
+  /* overlays */
+  #sampleCursor{
+    position:fixed;
+    width:42px;height:42px;
+    pointer-events:none;
+    display:none;
+    z-index:9999;
+    transform:translate(-7px,-18px) rotate(-25deg);
+  }
+  #sampleCursor:before{
+    content:"";
+    position:absolute;left:18px;top:3px;width:6px;height:34px;background:#111;
+    border-radius:5px;
+  }
+  #sampleCursor:after{
+    content:"➤";
+    position:absolute;left:0;top:0;font-size:34px;color:#ef4444;text-shadow:0 1px 2px #fff;
+  }
+  .sampling #sampleCursor{display:block}
+  .sampling .sample-target{outline:3px dashed rgba(255,0,0,.0)}
+  .modal{
+    position:fixed;inset:0;background:rgba(0,0,0,.42);
+    display:none;align-items:center;justify-content:center;z-index:200;
+    padding:20px;
+  }
+  .modal.open{display:flex}
+  .modal-card{
+    width:min(520px,94vw);background:#fff;border-radius:18px;padding:20px;box-shadow:var(--shadow)
+  }
+  .modal-card h2{margin-top:0}
+  .modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  #inventoryList{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:55vh;overflow:auto}
+  .sample-row{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 12px;background:#f3f4f6;border-radius:10px
+  }
+  .sample-row button{padding:6px 10px}
+  .notice{
+    position:fixed;left:50%;top:86px;transform:translateX(-50%);
+    background:#111827;color:#fff;padding:10px 16px;border-radius:10px;z-index:220;
+    opacity:0;pointer-events:none;transition:.2s;box-shadow:var(--shadow)
+  }
+  .notice.show{opacity:1}
+  .roomNav{
+    position:absolute;right:16px;top:16px;z-index:21;background:rgba(255,255,255,.92);
+    padding:10px;border-radius:12px;display:flex;gap:8px;flex-wrap:wrap;max-width:64%;
+  }
+  .roomNav button{padding:8px 10px}
+  @media(max-width:700px){
+    #scene{min-height:620px}
+    .house{left:8%;width:84%}
+    .roof{left:3%;width:94%}
+    .roomNav{top:56px;max-width:92%;left:4%;right:4%}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>House Material Sampling Simulator</h1>
+  <div class="top-actions">
+    <button id="sampleBtn" class="primary">Take a Sample</button>
+    <button id="inventoryBtn" class="green">Samples Collected (<span id="sampleCount">0</span>)</button>
+  </div>
+</header>
+
+<div id="sceneWrap">
+  <div id="scene"></div>
+</div>
+
+<div id="sampleCursor"></div>
+
+<div id="choiceModal" class="modal">
+  <div class="modal-card">
+    <h2 id="choiceTitle">Choose Sample</h2>
+    <p id="choiceText"></p>
+    <div id="choiceButtons" class="modal-actions"></div>
+    <div class="modal-actions">
+      <button class="secondary" onclick="closeChoice()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="inventoryModal" class="modal">
+  <div class="modal-card">
+    <h2>Samples Collected</h2>
+    <div id="inventoryList"></div>
+    <div class="end-actions">
+      <button class="secondary" onclick="closeInventory()">Close</button>
+      <button class="danger" onclick="endInspection()">End Inspection</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="historyModal" class="modal">
+  <div class="modal-card" style="width:min(760px,94vw)">
+    <h2>House History Report</h2>
+    <div class="report-body">
+      <p><strong>Address:</strong> 1423 Maplewood Drive</p>
+      <p><strong>Date of Report:</strong> September 11, 2026</p>
+      <p><strong>Prepared for:</strong> Current Owner / Prospective Buyer</p>
+
+      <h3>Construction &amp; Original Details</h3>
+      <table>
+        <tr><th>Feature</th><th>Description</th></tr>
+        <tr><td>Year Built</td><td>1952</td></tr>
+        <tr><td>Sq. Ft.</td><td>1200 sq. ft.</td></tr>
+        <tr><td>Stories</td><td>Two</td></tr>
+        <tr><td>Orientation</td><td>Front façade faces due south</td></tr>
+        <tr><td>Foundation</td><td>Full basement</td></tr>
+        <tr><td>Exterior Walls</td><td>Block/brick construction</td></tr>
+        <tr><td>Interior Finish</td><td>Drywall (walls and ceilings)</td></tr>
+        <tr><td>Flooring (Original)</td><td>Likely hardwood or linoleum (typical for era)</td></tr>
+      </table>
+
+      <h3>Basement</h3>
+      <ul>
+        <li><strong>Floor:</strong> Cement slab</li>
+        <li><strong>Walls:</strong> Brick (exposed or parged)</li>
+        <li><strong>Original Heating:</strong> Boiler system (still in place)</li>
+      </ul>
+
+      <h3>Major Renovations</h3>
+      <p><strong>1980s Renovation</strong></p>
+      <ul>
+        <li><strong>Heating System:</strong> Forced-air furnace installed. The original boiler was left in place and may still be partially connected or serve as a backup/secondary heat source.</li>
+        <li><strong>Kitchen:</strong> Fully remodeled — likely including new cabinets, countertops, appliances, and possible layout reconfiguration.</li>
+      </ul>
+
+      <p><strong>2020 Roof Replacement</strong></p>
+      <ul>
+        <li><strong>New Roof:</strong> Metal roof installed</li>
+        <li><strong>Note:</strong> Original asphalt shingles were not removed; the metal roof was installed directly over them. This is a common practice but adds weight to the roof structure and may obscure the condition of the underlying shingles and decking.</li>
+      </ul>
+
+      <h3>Current Interior Finishes</h3>
+      <ul>
+        <li><strong>Walls &amp; Ceilings:</strong> Drywall throughout. Popcorn ceiling in the living room.</li>
+        <li><strong>Flooring:</strong> Predominantly carpet and vinyl</li>
+      </ul>
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" onclick="closeHistory()">Close</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+<div id="workflowModal" class="modal">
+  <div class="modal-card" style="width:min(560px,94vw)">
+    <h2>Inspection Workflow</h2>
+    <p id="workflowMessage"></p>
+    <div class="modal-actions">
+      <button class="primary" onclick="closeWorkflow()">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="sketchModal" class="modal">
+  <div class="modal-card" style="width:min(800px,95vw)">
+    <h2>House Interior Floor Plan</h2>
+    <p>Review the building layout, identify homogeneous areas, and use this sketch to plan your bulk sampling locations.</p>
+
+    <div class="floorplan-wrap">
+      <div class="floorplan-level">
+        <h3>First Floor</h3>
+        <div class="floorplan-grid">
+          <div class="plan-room wide">Living Room</div>
+          <div class="plan-room">Kitchen</div>
+          <div class="plan-room">Bathroom</div>
+        </div>
+      </div>
+
+      <div class="floorplan-level">
+        <h3>Second Floor</h3>
+        <div class="floorplan-grid">
+          <div class="plan-room">Bedroom 1</div>
+          <div class="plan-room">Bedroom 2</div>
+        </div>
+        <div class="plan-basement">Basement below first floor: Boiler + Gas Furnace</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="primary" onclick="completeSketch()">Mark Sketch Complete</button>
+      <button class="secondary" onclick="closeSketch()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="feedbackModal" class="modal">
+  <div class="modal-card feedback-shell" style="width:min(850px,95vw)">
+    <h2>End Inspection Feedback</h2>
+    <div id="feedbackScroll" class="feedback-scroll">
+      <div id="feedbackList" class="feedback-list"></div>
+    </div>
+    <div class="feedback-controls">
+      <button id="continueFeedbackBtn" class="primary" onclick="continueFeedback()">Continue Feedback</button>
+      <button id="exitFeedbackBtn" class="secondary" onclick="finishAndRestart()">Exit &amp; Restart</button>
+    </div>
+  </div>
+</div>
+
+<div id="notice" class="notice"></div>
+
+<script>
+const scene = document.getElementById('scene');
+const sampleBtn = document.getElementById('sampleBtn');
+const inventoryBtn = document.getElementById('inventoryBtn');
+const sampleCount = document.getElementById('sampleCount');
+const choiceModal = document.getElementById('choiceModal');
+const choiceText = document.getElementById('choiceText');
+const choiceButtons = document.getElementById('choiceButtons');
+const inventoryModal = document.getElementById('inventoryModal');
+const inventoryList = document.getElementById('inventoryList');
+const notice = document.getElementById('notice');
+const historyModal = document.getElementById('historyModal');
+const feedbackModal = document.getElementById('feedbackModal');
+const sketchModal = document.getElementById('sketchModal');
+const workflowModal = document.getElementById('workflowModal');
+const workflowMessage = document.getElementById('workflowMessage');
+const feedbackList = document.getElementById('feedbackList');
+const sampleCursor = document.getElementById('sampleCursor');
+
+let mode = 'outside';
+let exteriorSide = 0; // 0 front,1 right,2 back,3 left
+let currentRoom = 'living';
+let sampling = false;
+let samples = [];
+let historyViewed = false;
+let sampledBeforeHistory = false;
+let pendingSurfaceKind = null;
+let feedbackQueue = [];
+let feedbackIndex = 0;
+let inspectionFinished = false;
+let sketchCompleted = false;
+
+const sideNames = ['Front of House','Right Side of House','Back of House','Left Side of House'];
+
+function openHistory(){ historyViewed = true; historyModal.classList.add('open'); }
+
+function openSketch(){ sketchModal.classList.add('open'); }
+function closeSketch(){ sketchModal.classList.remove('open'); }
+function completeSketch(){
+  sketchCompleted = true;
+  sketchModal.classList.remove('open');
+  showNotice('Building layout sketch completed.');
+}
+function closeWorkflow(){ workflowModal.classList.remove('open'); }
+function showWorkflowMessage(message){
+  workflowMessage.textContent = message;
+  workflowModal.classList.add('open');
+}
+function closeHistory(){ historyModal.classList.remove('open'); }
+
+function showNotice(text){
+  notice.textContent = text;
+  notice.classList.add('show');
+  setTimeout(()=>notice.classList.remove('show'),1800);
+}
+
+function setSampling(on){
+  sampling = on;
+  document.body.classList.toggle('sampling', on);
+  sampleBtn.textContent = on ? 'Cancel Sampling' : 'Take a Sample';
+  if(on) showNotice('Move the red arrow and click the material you want to sample.');
+}
+
+sampleBtn.addEventListener('click',()=>{
+  if(sampling){
+    setSampling(false);
+    return;
+  }
+
+  if(!historyViewed){
+    showWorkflowMessage('An inspection should start with a review of the building history.');
+    return;
+  }
+
+  if(!sketchCompleted){
+    showWorkflowMessage('An inspector should first sketch out the building, define homogeneous areas, and develop a sampling plan for bulk samples.');
+    return;
+  }
+
+  setSampling(true);
+});
+document.addEventListener('mousemove',e=>{
+  sampleCursor.style.left=e.clientX+'px';
+  sampleCursor.style.top=e.clientY+'px';
+});
+
+function addSample(type){
+  samples.push({id:Date.now()+Math.random(), type, location:getLocationLabel(), surface:pendingSurfaceKind});
+  sampleCount.textContent=samples.length;
+  closeChoice(); setSampling(false);
+  showNotice(`You have collected one sample of ${type}.`);
+  pendingSurfaceKind = null;
+}
+
+function getLocationLabel(){
+  if(mode==='outside') return sideNames[exteriorSide];
+  const labels={
+    living:'Living Room', kitchen:'Kitchen', bathroom:'Bathroom',
+    bedroom1:'Bedroom 1', bedroom2:'Bedroom 2', basement:'Basement'
+  };
+  return labels[currentRoom] || 'House';
+}
+
+function askChoice(message, options){
+  choiceText.textContent=message;
+  choiceButtons.innerHTML='';
+  options.forEach(opt=>{
+    const b=document.createElement('button');
+    b.className='primary';
+    b.textContent=opt.label;
+    b.onclick=()=>addSample(opt.value);
+    choiceButtons.appendChild(b);
+  });
+  choiceModal.classList.add('open');
+}
+function closeChoice(){choiceModal.classList.remove('open')}
+
+function handleSample(kind){
+  if(!sampling) return;
+  pendingSurfaceKind = kind;
+  if(mode==='outside'){
+    if(kind==='wood' || kind==='door') askChoice('Would you like a sample of the paint or the wood?',[{label:'Paint',value:'paint'},{label:'Wood',value:'wood'}]);
+    else if(kind==='glass') addSample('glass');
+    return;
+  }
+  if(currentRoom==='basement'){
+    if(kind==='boilerInsulation') addSample('insulation');
+    else if(kind==='furnaceInsulation') addSample('furnace pipe insulation');
+    else if(['wall','ceiling','floor'].includes(kind)) askChoice('Would you like a sample of the brick or the mortar?',[{label:'Brick',value:'brick'},{label:'Mortar',value:'mortar'}]);
+    return;
+  }
+  if(kind==='corner') askChoice('What material would you like to sample from this wall/ceiling corner?',[{label:'Paint',value:'paint'},{label:'Drywall',value:'drywall'},{label:'Joint Compound',value:'joint compound'}]);
+  else if(kind==='wall' || kind==='ceiling') askChoice('Would you like a sample of the paint or the drywall?',[{label:'Paint',value:'paint'},{label:'Drywall',value:'drywall'}]);
+  else if(kind==='floor'){
+    if(currentRoom==='bedroom1' || currentRoom==='bedroom2') addSample('carpet');
+    else if(currentRoom==='living') addSample('hardwood');
+    else addSample('tile');
+  }
+}
+
+function renderExterior(){
+  mode='outside';
+  const isFront=exteriorSide===0;
+  const isBack=exteriorSide===2;
+  const side=sideNames[exteriorSide];
+  scene.innerHTML=`
+    <div class="house-area">
+      <div class="sky"></div>
+      <div class="ground"></div>
+      <div class="roof"></div>
+      <div class="house sample-target" data-kind="wood" onclick="handleSample('wood')">
+        <div class="trim"></div>
+        <div class="window w1 sample-target" onclick="event.stopPropagation();handleSample('glass')"></div>
+        <div class="window w2 sample-target" onclick="event.stopPropagation();handleSample('glass')"></div>
+        <div class="window w3 sample-target" onclick="event.stopPropagation();handleSample('glass')"></div>
+        <div class="window w4 sample-target" onclick="event.stopPropagation();handleSample('glass')"></div>
+        ${(isFront||isBack)?`<div class="door sample-target" onclick="event.stopPropagation();handleSample('door')"></div>`:''}
+        <div class="foundation"></div>
+      </div>
+      ${(isFront||isBack)?'<div class="path"></div>':''}
+      <div class="badge">${side}</div>
+      ${isFront?'<button class="report-btn" onclick="openHistory()">House History Report</button>':''}
+      ${isFront?'<button class="sketch-btn" onclick="openSketch()">Complete a Sketch of the Layout</button>':''}
+      <div class="hud">
+        <button class="secondary" onclick="walkAround()">Walk Around Clockwise</button>
+        ${(isFront||isBack)?'<button class="primary" onclick="enterHouse()">Enter the House</button>':''}
+      </div>
+    </div>`;
+}
+
+function walkAround(){
+  exteriorSide=(exteriorSide+1)%4;
+  setSampling(false);
+  renderExterior();
+}
+function enterHouse(){
+  mode='inside';
+  currentRoom='living';
+  setSampling(false);
+  renderRoom();
+}
+
+function roomNav(){
+  return `
+    <div class="roomNav">
+      <button onclick="goRoom('living')">Living Room</button>
+      <button onclick="goRoom('kitchen')">Kitchen</button>
+      <button onclick="goRoom('bathroom')">Bathroom</button>
+      <button onclick="goRoom('bedroom1')">Bedroom 1</button>
+      <button onclick="goRoom('bedroom2')">Bedroom 2</button>
+      <button onclick="goRoom('basement')">Basement</button>
+      <button onclick="exitHouse()">Exit House</button>
+    </div>`;
+}
+function goRoom(name){
+  currentRoom=name;
+  setSampling(false);
+  renderRoom();
+}
+function exitHouse(){
+  mode='outside';
+  setSampling(false);
+  renderExterior();
+}
+
+function rulers(){
+  return `<div class="ruler horizontal wall-ruler-h"><span class="r0">0 ft</span><span class="r1">4 ft</span><span class="r2">8 ft</span><span class="r3">12 ft</span><span class="r4">16 ft</span><span class="r5">20 ft</span></div><div class="ruler vertical wall-ruler-v"><span class="r0">0 ft</span><span class="r1">2 ft</span><span class="r2">4 ft</span><span class="r3">6 ft</span><span class="r4">8 ft</span></div><div class="ruler horizontal floor-ruler-h"><span class="r0">0 ft</span><span class="r1">4 ft</span><span class="r2">8 ft</span><span class="r3">12 ft</span><span class="r4">16 ft</span><span class="r5">20 ft</span></div><div class="ruler vertical floor-ruler-v"><span class="r0">0 ft</span><span class="r1">3 ft</span><span class="r2">6 ft</span><span class="r3">9 ft</span><span class="r4">12 ft</span></div>`;
+}
+
+function basicRoom(label, extras='', floorClass='tile-floor'){
+  return `
+    <div class="room-area">
+      <div class="room">
+        <div class="wall sample-target" onclick="handleSample('wall')"></div>
+        <div class="ceiling sample-target" onclick="event.stopPropagation();handleSample('ceiling')"></div>
+        <div class="floor ${floorClass} sample-target" onclick="event.stopPropagation();handleSample('floor')"></div>
+        <div class="room-corner corner-tl sample-target" onclick="event.stopPropagation();handleSample('corner')"></div>
+        <div class="room-corner corner-tr sample-target" onclick="event.stopPropagation();handleSample('corner')"></div>
+        ${extras}
+        ${rulers()}
+      </div>
+      <div class="badge">${label}</div>
+      ${roomNav()}
+    </div>`;
+}
+
+function renderRoom(){
+  mode='inside';
+  if(currentRoom==='living'){
+    scene.innerHTML=basicRoom('Living Room',`
+      <div class="sofa"><div class="sofa-arm-left"></div><div class="sofa-arm-right"></div></div>
+      <div class="tv-stand"></div>
+      <div class="tv"></div>
+    `,'hardwood-floor');
+  } else if(currentRoom==='kitchen'){
+    scene.innerHTML=basicRoom('Kitchen',`
+      <div class="counter"></div><div class="cabinet"></div><div class="sink"></div>
+    `);
+  } else if(currentRoom==='bathroom'){
+    scene.innerHTML=basicRoom('Bathroom',`
+      <div class="tub"></div><div class="bath-sink"></div><div class="toilet"></div>
+    `);
+  } else if(currentRoom==='bedroom1'){
+    scene.innerHTML=basicRoom('Second Floor - Bedroom 1',`
+      <div class="bed"><div class="bed-blanket"></div><div class="bed-leg-left"></div><div class="bed-leg-right"></div></div><div class="dresser"></div>
+    `,'carpet-floor');
+  } else if(currentRoom==='bedroom2'){
+    scene.innerHTML=basicRoom('Second Floor - Bedroom 2',`
+      <div class="bed" style="left:37%"><div class="bed-blanket" style="background:linear-gradient(#8a76a8,#715f8d)"></div><div class="bed-leg-left"></div><div class="bed-leg-right"></div></div>
+      <div class="dresser" style="right:auto;left:10%"></div>
+    `,'carpet-floor');
+  } else if(currentRoom==='basement'){
+    scene.innerHTML=`
+      <div class="room-area basement">
+        <div class="brickwall sample-target" onclick="handleSample('wall')"></div>
+        <div class="ceiling sample-target" style="background:#747474" onclick="event.stopPropagation();handleSample('ceiling')"></div>
+        <div class="basementFloor sample-target" onclick="event.stopPropagation();handleSample('floor')"></div>
+        <div class="boiler"></div>
+        <div class="pipe p1 sample-target" title="Boiler pipe insulation" onclick="event.stopPropagation();handleSample('boilerInsulation')"></div>
+        <div class="pipe p2 sample-target" title="Boiler pipe insulation" onclick="event.stopPropagation();handleSample('boilerInsulation')"></div>
+        <div class="pipe p3 sample-target" title="Boiler pipe insulation" onclick="event.stopPropagation();handleSample('boilerInsulation')"></div>
+        <div class="pipe p4 sample-target" title="Boiler pipe insulation" onclick="event.stopPropagation();handleSample('boilerInsulation')"></div>
+        <div class="pipe p5 sample-target" title="Boiler pipe insulation" onclick="event.stopPropagation();handleSample('boilerInsulation')"></div>
+        <div class="pipe p6 sample-target" title="Boiler pipe insulation" onclick="event.stopPropagation();handleSample('boilerInsulation')"></div>
+        <div class="furnace"></div>
+        <div class="pipe fp1 sample-target" title="Furnace pipe insulation" onclick="event.stopPropagation();handleSample('furnaceInsulation')"></div>
+        <div class="pipe fp2 sample-target" title="Furnace pipe insulation" onclick="event.stopPropagation();handleSample('furnaceInsulation')"></div>
+        ${rulers()}
+        <div class="badge">Basement / Boiler Room</div>
+        ${roomNav()}
+      </div>`;
+  }
+}
+
+inventoryBtn.addEventListener('click',()=>{
+  renderInventory();
+  inventoryModal.classList.add('open');
+});
+function closeInventory(){inventoryModal.classList.remove('open')}
+
+function sampleDisplayName(s){
+  if(s.location==='Living Room' && s.surface==='ceiling'){
+    return 'Living Room Ceiling - ' + capitalize(s.type);
+  }
+  return capitalize(s.type);
+}
+
+function renderInventory(){
+  if(samples.length===0){
+    inventoryList.innerHTML='<p>No samples have been collected yet.</p>';
+    return;
+  }
+  inventoryList.innerHTML='';
+  samples.forEach((s,i)=>{
+    const row=document.createElement('div');
+    row.className='sample-row';
+    row.innerHTML=`
+      <div><strong>${i+1}. ${sampleDisplayName(s)}</strong><br><small>${s.location}</small></div>
+      <button class="danger" title="Remove sample" onclick="removeSample('${s.id}')">✕</button>`;
+    inventoryList.appendChild(row);
+  });
+}
+function removeSample(id){
+  samples=samples.filter(s=>String(s.id)!==String(id));
+  sampleCount.textContent=samples.length;
+  renderInventory();
+}
+function capitalize(t){return t.charAt(0).toUpperCase()+t.slice(1)}
+
+function closeFeedback(){ feedbackModal.classList.remove('open'); }
+
+function showFeedbackItem(){
+  feedbackList.innerHTML = '';
+  const continueBtn = document.getElementById('continueFeedbackBtn');
+  const exitBtn = document.getElementById('exitFeedbackBtn');
+
+  if(feedbackQueue.length === 0){
+    const item = document.createElement('div');
+    item.className = 'feedback-item feedback-good';
+    item.textContent = 'Inspection complete. No sampling issues were identified by the simulator.';
+    feedbackList.appendChild(item);
+    continueBtn.style.display = 'none';
+    exitBtn.style.display = 'inline-block';
+    const scroller = document.getElementById('feedbackScroll');
+    if(scroller) scroller.scrollTop = 0;
+    return;
+  }
+
+  const item = document.createElement('div');
+  item.className = 'feedback-item';
+  item.textContent = feedbackQueue[feedbackIndex];
+  feedbackList.appendChild(item);
+
+  if(feedbackIndex >= feedbackQueue.length - 1){
+    continueBtn.style.display = 'none';
+  } else {
+    continueBtn.style.display = 'inline-block';
+  }
+  exitBtn.style.display = 'inline-block';
+  const scroller = document.getElementById('feedbackScroll');
+  if(scroller) scroller.scrollTop = 0;
+}
+
+function continueFeedback(){
+  if(feedbackIndex < feedbackQueue.length - 1){
+    feedbackIndex++;
+    showFeedbackItem();
+  }
+}
+
+function resetSimulator(){
+  mode = 'outside';
+  exteriorSide = 0;
+  currentRoom = 'living';
+  sampling = false;
+  samples = [];
+  sampleEvents = [];
+  historyViewed = false;
+  sampledBeforeHistory = false;
+  pendingSurfaceKind = null;
+  feedbackQueue = [];
+  feedbackIndex = 0;
+  inspectionFinished = false;
+  sketchCompleted = false;
+  sampleCount.textContent = '0';
+  document.body.classList.remove('sampling');
+  sampleBtn.textContent = 'Take a Sample';
+  renderExterior();
+}
+
+function finishAndRestart(){
+  feedbackModal.classList.remove('open');
+  resetSimulator();
+}
+
+function endInspection(){
+  const feedback = [];
+const drywallCount = samples.filter(s => s.type === 'drywall').length;
+  if(drywallCount < 2){
+    feedback.push(`An asbestos inspector typically needs to take a minimum of 2 to 3 samples per homogeneous area (material that looks and was installed the same way) of drywall and joint compound.
+
+Homogeneous Areas: Regulations (such as EPA and local guidelines) group materials by identical appearance and installation era. If the entire house used the same drywall and joint compound installation, it counts as one homogeneous group.
+
+The 2-to-3 Rule: For miscellaneous construction materials like drywall and joint compound, federal and state rules usually require at least 2 samples to disprove asbestos, while many local jurisdictions or strict guidelines require at least 3`);
+  }
+
+  const livingCeilingCount = samples.filter(s =>
+    s.location === 'Living Room' && s.surface === 'ceiling'
+  ).length;
+  if(livingCeilingCount < 3){
+    feedback.push(`You did not follow the 3, 5, 7 rule for the living room ceiling. The asbestos 3-5-7 rule is an EPA guideline under AHERA that dictates the minimum number of bulk material samples an inspector must collect from a homogeneous area of friable surfacing material.
+
+3 Samples: For an area of 1,000 square feet or less of suspect material.
+5 Samples: For an area between 1,000 and 5,000 square feet of suspect material.
+7 Samples: For an area of more than 5,000 square feet of suspect material.
+
+Because it is a popcorn ceiling, and therefor, surfacing material, you should have taken a minimum of 3 samples.`);
+  }
+
+  const tileCount = samples.filter(s =>
+    s.type === 'tile' && (s.location === 'Kitchen' || s.location === 'Bathroom')
+  ).length;
+  if(tileCount < 2){
+    feedback.push(`You did not take the minimum number of samples for the tile flooring. Under AHERA, floor tile is treated as a miscellaneous material rather than a friable surfacing material, so the 3, 5, 7 rule does not apply.
+
+For a homogeneous area of suspect floor tile, take a minimum of 2 bulk samples to provide representative sampling. If the kitchen and bathroom tile are the same material, appearance, and installation era, they may be treated as one homogeneous area. If they are different materials or were installed at different times, each should be treated as a separate homogeneous area and sampled independently.`);
+  }
+
+  const boilerInsulationCount = samples.filter(s =>
+    s.location === 'Basement' && s.surface === 'boilerInsulation'
+  ).length;
+  if(boilerInsulationCount < 3){
+    feedback.push(`You did not take the minimum number of samples for the pipe insulation in the basement. You need a minimum of 3 separate bulk samples for each distinct type or style of pipe wrap or boiler insulation found in the home. Mudded joints, fittings, and straight pipe runs may be treated as separate applications or materials, so inspectors often sample elbows and straight runs separately to ensure complete coverage. If you are only dealing with a very small, isolated repair patch of less than 6 square feet, regulations allow for just 1 sample.`);
+  }
+
+  if(samples.some(s => s.type === 'wood')){
+    feedback.push(`Why did you take samples of the Wood? Asbestos was not used in wood and samples of this material are not necessary or recommended.`);
+  }
+
+  if(samples.some(s => s.type === 'glass')){
+    feedback.push(`Why did you take samples of the Glass? Asbestos was not used in glass and samples of this material are not necessary or recommended.`);
+  }
+
+  feedbackQueue = feedback;
+  feedbackIndex = 0;
+  inspectionFinished = true;
+  closeInventory();
+  feedbackModal.classList.add('open');
+  showFeedbackItem();
+}
+
+historyModal.addEventListener('click',e=>{if(e.target===historyModal) closeHistory()});
+sketchModal.addEventListener('click',e=>{if(e.target===sketchModal) closeSketch()});
+workflowModal.addEventListener('click',e=>{if(e.target===workflowModal) closeWorkflow()});
+feedbackModal.addEventListener('click',e=>{if(e.target===feedbackModal && !inspectionFinished) closeFeedback()});
+
+renderExterior();
+</script>
+</body>
+</html>
